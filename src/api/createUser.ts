@@ -16,14 +16,14 @@ export async function createUser(nombre: string, apellido: string, email: string
             password,
             role: 'USER',
             // sacar required en los siguiente campos
-            fechaNacimiento: '2001-09-14',
-            edad: 0,
+            fechaNacimiento: '2010-12-10',
+            edad: 1,
             genero: 'Sin especificar',
             telefono: '0000000',
             direccion: 'sin modificar',
             localidad: 'sin modificar',
             provincia: 'sin modificar',
-            pais: 'Argentina',
+            pais: 'sin modificar',
             cp: '0000', 
         }),
     })

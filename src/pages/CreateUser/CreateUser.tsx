@@ -11,7 +11,7 @@ function CreateUser() {
   // Inputs controlados: React es la fuente de verdad del valor
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('') 
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

@@ -87,16 +87,45 @@
     color: #ccc;
     white-space: nowrap;
   }
+
+  .GeneroIcoM {
+  font-size: 20px;
+  font-weight: 700;
+  color: #00c896;
+  }
+
+  .GeneroIcoF {
+  font-size: 20px;
+  font-weight: 700;
+  color: #b07ef8;
+  }
+
+  .Centrar{
+    text-align: center;
+  }
+
+  .SinEspecificar {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  }
   
   /* ============================================================
                                   USER CELL
     ============================================================ */
   .userCell {
-    display: flex;
+    display: grid;
+    grid-template-columns: 46px 1fr;
     align-items: center;
     gap: 12px;
   }
-  
+  .userCell span :last-child{
+    text-align: center;
+  }
+  .CentrarU{
+    text-align: center;
+  }
+
   .avatar {
     width: 46px;
     height: 46px;
@@ -116,20 +145,24 @@
     font-size: 12px;
     font-weight: 600;
   }
-  
+  .badge__root {
+    background-color: rgba(7, 80, 62, 0.12);
+    color: rgb(180, 0, 0);
+
+  }
   .badge__admin {
-    background-color: rgba(155, 93, 229, 0.15);
-    color: #b07ef8;
+    background-color: rgba(62, 39, 92, 0.15);
+    color: rgb(252, 235, 7);
   }
   
-  .badge__editor {
-    background-color: rgba(0, 200, 150, 0.12);
-    color: #00c896;
+  .badge__guest {
+    background-color: rgba(75, 134, 120, 0.12);
+    color: gray;
   }
   
   .badge__user {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #888;
+    background-color: rgba(21, 76, 139, 0.06);
+    color: rgb(7, 107, 7);
   }
   
   /* ============================================================
@@ -138,6 +171,7 @@
   .actions {
     display: flex;
     gap: 8px;
+    justify-content: center;
   }
   
   .actionBtn {
