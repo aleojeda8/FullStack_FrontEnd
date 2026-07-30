@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import Button from '@/components/ui/Button/Button'
 import Modal from '@/components/blocks/Modal/Modal'
@@ -16,6 +16,8 @@ function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<'nombre' | 'email' | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Usuario seleccionado para ver o editar en el modal
   const [modalUser, setModalUser] = useState<User | null>(null)
@@ -90,7 +92,41 @@ function Home() {
 
   return <span className={styles.SinEspecificar}>ㅤ</span>
 }
+  function handleSort(field: 'nombre' | 'email') {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
+  const sortedUsers = useMemo(() => {
+  if (!sortField) return users
+
+  const copia = [...users]
+  copia.sort((a, b) => {
+    const valorA = sortField === 'nombre' ? `${a.nombre} ${a.apellido}`.toLowerCase() : a.email.toLowerCase()
+    const valorB = sortField === 'nombre' ? `${b.nombre} ${b.apellido}`.toLowerCase() : b.email.toLowerCase()
+    if (valorA < valorB) return sortDirection === 'asc' ? -1 : 1
+    if (valorA > valorB) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+  return copia
+  }, [users, sortField, sortDirection])
+
+  function avatarUrl(genero: string, seed: string) {
+  const g = genero?.trim().toLowerCase()
+  const esMasculino = ['masculino', 'm', 'hombre'].includes(g)
+  const carpeta = esMasculino ? 'male' : 'female'
+
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % 98
+  }
+
+    return `https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/${carpeta}/512/${hash}.jpg`
+  }
   return (
     <main className={styles.container}>
 
@@ -122,12 +158,14 @@ function Home() {
             <thead>
               <tr>
                 <th className={`${styles.th} ${styles.Centrar}`}>
-                  <div className={styles.userCell}>
+                  <div className={`${styles.userCell} ${styles.sortableHeader}`} onClick={() => handleSort('nombre')}>
                     <span></span>
-                    <span>Usuario</span>
-                  </div>
+                    <span>Usuario{sortField === 'nombre' && <span className={styles.sortArrow}>{sortDirection === 'asc' ? ' ↓' : ' ↑'}</span>}</span>
+                </div>
+              </th>
+                <th className={`${styles.th} ${styles.Centrar} ${styles.sortableHeader}`} 
+                onClick={() => handleSort('email')}>Email{sortField === 'email' && <span className={styles.sortArrow}>{sortDirection === 'asc' ? ' ↓' : ' ↑'}</span>}
                 </th>
-                <th className={`${styles.th} ${styles.Centrar}`}>Email</th>
                 <th className={`${styles.th} ${styles.Centrar}`}>Género</th>
                 <th className={`${styles.th} ${styles.Centrar}`}>Localidad</th>
                 <th className={`${styles.th} ${styles.Centrar}`}>Rol</th>
@@ -135,22 +173,44 @@ function Home() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {sortedUsers.map((user) => (
                 <tr key={user._id} className={styles.tr}>
                   <td className={styles.td}>
                     <div className={styles.userCell}>
-                      {/* La API no devuelve imagen: generamos un avatar con el nombre */}
-                      <img
+                      {user.genero.toLowerCase() === 'sin especificar' ?(
+                        <img
                         className={styles.avatar}
                         src={`https://ui-avatars.com/api/?name=${user.nombre}+${user.apellido}&background=random`}
                         alt={`${user.nombre} ${user.apellido}`}
                       />
+                      ) : (
+                        <img
+                        className={styles.avatar}
+                        src={avatarUrl(user.genero, user._id)}
+                        alt={`${user.nombre} ${user.apellido}`}
+                        />
+                      )}
+                      
                       <span className={styles.CentrarU}>{user.nombre} {user.apellido}</span>
                     </div>
                   </td>
                   <td className={`${styles.td} ${styles.Centrar}`}>{user.email}</td>
                   <td className={`${styles.td} ${styles.Centrar}`}><GeneroIco genero={user.genero} /></td>
-                  <td className={`${styles.td} ${styles.Centrar}`}>{user.localidad}</td>
+                  <td className={`${styles.td} ${styles.Centrar}`}>
+                    {user.localidad && user.localidad.trim() !== '' && user.localidad.toLowerCase() !== 'sin modificar' ? (
+                      <a
+                        className={styles.mapLink}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${user.localidad}, ${user.provincia}, ${user.pais}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Ver ${user.localidad} en Google Maps`}
+                      >
+                        📍 {user.localidad}
+                      </a>
+                    ) : (
+                      <span className={styles.mapLinkEmpty}>-</span>
+                    )}
+                  </td>
                   <td className={`${styles.td} ${styles.Centrar}`}>
                     <span className={`${styles.badge} ${styles[`badge__${user.role.toLowerCase()}`] ?? ''}`}>
                       {user.role}
@@ -207,10 +267,10 @@ function UserDetails({ user }: { user: User }) {
   const fields: [string, string][] = [
     ['Nombre', `${user.nombre} ${user.apellido}`],
     ['Email', user.email],
-    ['Rol', user.role],
-    ['Género', user.genero],
-    ['Edad', String(user.edad)],
-    ['Fecha de nacimiento', user.fechaNacimiento?.slice(0, 10)],
+    // ['Rol', user.role],
+    // ['Género', user.genero],
+    // ['Edad', String(user.edad)],
+    // ['Fecha de nacimiento', user.fechaNacimiento?.slice(0, 10)],
     ['Teléfono', user.telefono],
     ['Dirección', user.direccion],
     ['Localidad', user.localidad],

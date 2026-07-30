@@ -109,7 +109,19 @@
   font-size: 13px;
   font-style: italic;
   }
-  
+
+  .sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  }
+
+  .sortableHeader:hover {
+    color: #ccc;
+  }
+
+  .sortArrow {
+    font-weight: 700;
+  }
   /* ============================================================
                                   USER CELL
     ============================================================ */
@@ -283,6 +295,19 @@
     padding: 10px 20px;
     margin-top: 0;
   }
+
+  .mapLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mapLink:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
 
   /* ============================================================
                                   MOBILE
