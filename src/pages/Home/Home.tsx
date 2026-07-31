@@ -222,7 +222,7 @@ function Home() {
                     {user.localidad && user.localidad.trim() !== '' && user.localidad.toLowerCase() !== 'sin modificar' ? (
                       <a
                         className={styles.mapLink}
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${user.localidad}, ${user.provincia}, ${user.pais}`)}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${user.direccion}, ${user.localidad}, ${user.provincia}, ${user.pais}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`Ver ${user.localidad} en Google Maps`}
@@ -245,7 +245,7 @@ function Home() {
                         <button
                         className={`${styles.actionBtn} ${styles.actionBtnEdit}`}onClick={() => openEdit(user)}>Editar</button>
                       )}
-                      {(role === 'ROOT' || role === 'ADMIN') && (
+                      {(role === 'ROOT' || (role === 'ADMIN' && user.role !== 'ROOT' && user.role !== 'ADMIN')) && (
                         <button
                           className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
                           onClick={() => handleDelete(user)}
