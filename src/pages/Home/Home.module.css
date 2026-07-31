@@ -1,26 +1,26 @@
 .container {
   min-height: 100vh;
-    background-color: #0a0a0a;
-    padding: 40px;
-  }
-  
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  
-  .header>button {
-    width: auto;
-    padding: 10px 20px;
-    margin-top: 0;
-  }
-  
-  .headerActions {
-    display: flex;
-    gap: 12px;
-  }
+  background-color: #0a0a0a;
+  padding: 40px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.header>button {
+  width: auto;
+  padding: 10px 20px;
+  margin-top: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+}
 
   .headerActions button {
     width: auto;
@@ -211,6 +211,19 @@
   .actionBtnEdit:hover {
     border-color: #9b5de5;
     color: #c49dfa;
+  }
+
+  .actionBtnDelete {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .actionBtnDelete:hover {
+    background-color: #ff6b6b;
+    color: #fff;
   }
   
   /* ============================================================

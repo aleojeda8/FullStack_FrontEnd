@@ -5,6 +5,8 @@ import Modal from '@/components/blocks/Modal/Modal'
 import styles from './Home.module.css'
 import { getUsers } from '@/api/getUsers'
 import { updateUser } from '@/api/updateUser'
+import { deleteUser } from '@/api/deleteUser'
+import { requestEditUser } from '@/api/requestEditUser'
 import type { User } from '@/api/types'
 
 const ROLES = ['ROOT', 'ADMIN', 'USER', 'GUEST']
@@ -21,7 +23,7 @@ function Home() {
 
   // Usuario seleccionado para ver o editar en el modal
   const [modalUser, setModalUser] = useState<User | null>(null)
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | null>(null)
+  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'request' | null>(null)
 
   async function loadUsers() {
       try {
@@ -72,6 +74,18 @@ function Home() {
     closeModal()
     loadUsers()
     setSuccessMessage('Usuario actualizado correctamente')
+  }
+  async function handleDelete(user: User) {
+    const confirmado = window.confirm(`¿Seguro que querés eliminar a ${user.nombre} ${user.apellido}? Esta acción no se puede deshacer.`)
+    if (!confirmado) return
+
+    try {
+      await deleteUser(user._id)
+      setUsers((prev) => prev.filter((u) => u._id !== user._id))
+      setSuccessMessage('Usuario eliminado correctamente')
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
   const role = localStorage.getItem('role')
 
@@ -137,6 +151,14 @@ function Home() {
           {role !== 'USER' && role !== 'GUEST' && (
             <Button variant="primary" onClick={() => navigate({ to: '/create-user' })}>+ Agregar</Button>
           )}
+
+          {role === 'GUEST' && users.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setModalUser(users[0])
+                setModalMode('request')}}>Editar mis datos</Button>
+            )}
           <Button variant="secondary" onClick={handleLogout}>Cerrar sesión</Button>
         </div>
       </div>
@@ -223,6 +245,19 @@ function Home() {
                         <button
                         className={`${styles.actionBtn} ${styles.actionBtnEdit}`}onClick={() => openEdit(user)}>Editar</button>
                       )}
+                      {(role === 'ROOT' || role === 'ADMIN') && (
+                        <button
+                          className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
+                          onClick={() => handleDelete(user)}
+                          title="Eliminar usuario"
+                          aria-label="Eliminar usuario"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -235,11 +270,14 @@ function Home() {
       <Modal
         isOpen={modalMode !== null}
         onClose={closeModal}
-        title={modalMode === 'view' ? 'Detalle de usuario' : 'Editar usuario'}
+        title={modalMode === 'view' ? 'Detalle de usuario' : modalMode === 'request' ? 'Editar mis datos' : 'Editar usuario'}
       >
         {modalMode === 'view' && modalUser && <UserDetails user={modalUser} />}
         {modalMode === 'edit' && modalUser && (
           <UserEditForm user={modalUser} currentRole={role} onCancel={closeModal} onSaved={handleUserUpdated} />
+        )}
+        {modalMode === 'request' && modalUser && (
+          <RequestEditForm user={modalUser} onCancel={closeModal} />
         )}
       </Modal>
 
@@ -291,6 +329,125 @@ function UserDetails({ user }: { user: User }) {
   )
 }
 
+
+function RequestEditForm({ user, onCancel }: { user: User; onCancel: () => void }) {
+  const [nombre, setNombre] = useState(user.nombre)
+  const [apellido, setApellido] = useState(user.apellido)
+  const [genero, setGenero] = useState(user.genero)
+  const [telefono, setTelefono] = useState(user.telefono)
+  const [direccion, setDireccion] = useState(user.direccion)
+  const [localidad, setLocalidad] = useState(user.localidad)
+  const [provincia, setProvincia] = useState(user.provincia)
+  const [pais, setPais] = useState(user.pais)
+  const [cp, setCp] = useState(user.cp)
+  const [error, setError] = useState<string | null>(null)
+  const [enviado, setEnviado] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const cambios = [
+      ['Nombre', user.nombre, nombre],
+      ['Apellido', user.apellido, apellido],
+      ['Género', user.genero, genero],
+      ['Teléfono', user.telefono, telefono],
+      ['Dirección', user.direccion, direccion],
+      ['Localidad', user.localidad, localidad],
+      ['Provincia', user.provincia, provincia],
+      ['País', user.pais, pais],
+      ['Código postal', user.cp, cp],
+    ]
+      .filter(([, antes, ahora]) => antes !== ahora)
+      .map(([campo, antes, ahora]) => ({ campo, antes, ahora }))
+
+    if (cambios.length === 0) {
+      setError('No modificaste ningún dato todavía')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await requestEditUser(cambios)
+      setEnviado(true)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (enviado) {
+    return (
+      <div>
+        <p className={styles.message}>
+          Tu solicitud de cambios fue enviada. El administrador la va a revisar y aplicar.
+        </p>
+        <Button variant="primary" type="button" onClick={onCancel}>Cerrar</Button>
+      </div>
+    )
+  }
+
+  return (
+    <form className={styles.editForm} onSubmit={handleSubmit}>
+      <p className={styles.message}>
+        Modificá los datos que quieras cambiar. Al enviar, le llega un mail al administrador con tu solicitud — él es quien va a aplicar el cambio.
+      </p>
+
+      <div className={styles.formRow}>
+        <div>
+          <label className={styles.label} htmlFor="req-nombre">Nombre</label>
+          <input className={styles.input} id="req-nombre" type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        </div>
+        <div>
+          <label className={styles.label} htmlFor="req-apellido">Apellido</label>
+          <input className={styles.input} id="req-apellido" type="text" value={apellido} onChange={(e) => setApellido(e.target.value)} required />
+        </div>
+      </div>
+
+      <label className={styles.label} htmlFor="req-genero">Género</label>
+      <input className={styles.input} id="req-genero" type="text" value={genero} onChange={(e) => setGenero(e.target.value)} required />
+
+      <label className={styles.label} htmlFor="req-telefono">Teléfono</label>
+      <input className={styles.input} id="req-telefono" type="text" value={telefono} onChange={(e) => setTelefono(e.target.value)} required />
+
+      <label className={styles.label} htmlFor="req-direccion">Dirección</label>
+      <input className={styles.input} id="req-direccion" type="text" value={direccion} onChange={(e) => setDireccion(e.target.value)} required />
+
+      <div className={styles.formRow}>
+        <div>
+          <label className={styles.label} htmlFor="req-localidad">Localidad</label>
+          <input className={styles.input} id="req-localidad" type="text" value={localidad} onChange={(e) => setLocalidad(e.target.value)} required />
+        </div>
+        <div>
+          <label className={styles.label} htmlFor="req-provincia">Provincia</label>
+          <input className={styles.input} id="req-provincia" type="text" value={provincia} onChange={(e) => setProvincia(e.target.value)} required />
+        </div>
+      </div>
+
+      <div className={styles.formRow}>
+        <div>
+          <label className={styles.label} htmlFor="req-pais">País</label>
+          <input className={styles.input} id="req-pais" type="text" value={pais} onChange={(e) => setPais(e.target.value)} required />
+        </div>
+        <div>
+          <label className={styles.label} htmlFor="req-cp">Código postal</label>
+          <input className={styles.input} id="req-cp" type="text" value={cp} onChange={(e) => setCp(e.target.value)} required />
+        </div>
+      </div>
+
+      {error && <p className={styles.error}>{error}</p>}
+
+      <div className={styles.modalActions}>
+        <Button variant="secondary" type="button" onClick={onCancel}>Cancelar</Button>
+        <Button variant="primary" type="submit" disabled={loading}>
+          {loading ? 'Enviando...' : 'Enviar solicitud'}
+        </Button>
+      </div>
+    </form>
+  )
+}
 // ------------------------------------------------------------
 // Vista "Editar": formulario que guarda cambios con updateUser
 // El email no se incluye: el backend no permite modificarlo
@@ -309,8 +466,6 @@ function UserEditForm({
   const [nombre, setNombre] = useState(user.nombre)
   const [apellido, setApellido] = useState(user.apellido)
   const [genero, setGenero] = useState(user.genero)
-  const [edad, setEdad] = useState(String(user.edad))
-  const [fechaNacimiento, setFechaNacimiento] = useState(user.fechaNacimiento?.slice(0, 10) ?? '')
   const [telefono, setTelefono] = useState(user.telefono)
   const [direccion, setDireccion] = useState(user.direccion)
   const [localidad, setLocalidad] = useState(user.localidad)
@@ -330,8 +485,6 @@ function UserEditForm({
         nombre,
         apellido,
         genero,
-        edad: Number(edad),
-        fechaNacimiento,
         telefono,
         direccion,
         localidad,
@@ -375,57 +528,25 @@ function UserEditForm({
         </div>
       </div>
 
-      <div className={styles.formRow}>
-        <div>
-          <label className={styles.label} htmlFor="edit-genero">Género</label>
-          <input
-            className={styles.input}
-            id="edit-genero"
-            type="text"
-            value={genero}
-            onChange={(e) => setGenero(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className={styles.label} htmlFor="edit-edad">Edad</label>
-          <input
-            className={styles.input}
-            id="edit-edad"
-            type="number"
-            min={1}
-            max={120}
-            value={edad}
-            onChange={(e) => setEdad(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
-      <div className={styles.formRow}>
-        <div>
-          <label className={styles.label} htmlFor="edit-fechaNacimiento">Fecha de nacimiento</label>
-          <input
-            className={styles.input}
-            id="edit-fechaNacimiento"
-            type="date"
-            value={fechaNacimiento}
-            onChange={(e) => setFechaNacimiento(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className={styles.label} htmlFor="edit-telefono">Teléfono</label>
-          <input
-            className={styles.input}
-            id="edit-telefono"
-            type="text"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            required
-          />
-        </div>
-      </div>
+      <label className={styles.label} htmlFor="edit-genero">Género</label>
+      <input
+        className={styles.input}
+        id="edit-genero"
+        type="text"
+        value={genero}
+        onChange={(e) => setGenero(e.target.value)}
+        required
+      />
+      
+      <label className={styles.label} htmlFor="edit-telefono">Teléfono</label>
+      <input
+        className={styles.input}
+        id="edit-telefono"
+        type="text"
+        value={telefono}
+        onChange={(e) => setTelefono(e.target.value)}
+        required
+      />
 
       <label className={styles.label} htmlFor="edit-direccion">Dirección</label>
       <input
@@ -513,5 +634,4 @@ function UserEditForm({
     </form>
   )
 }
-
 export default Home
